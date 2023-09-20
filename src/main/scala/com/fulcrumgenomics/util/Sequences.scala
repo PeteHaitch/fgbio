@@ -108,6 +108,20 @@ object Sequences {
     count
   }
 
+  /** A fast Hamming distance routine that assumes the strings are of the same casing.
+    *
+    * @param s1 the first string to compare, case sensitive
+    * @param s2 the second string to compare, case sensitive
+    * @param stopAt stop counting the differences between the strings when they hit this number
+    */
+  @inline def countMismatchesFast(s1: String, s2: String, stopAt: Int = Int.MaxValue): Int = {
+    require(s1.length == s2.length, s"Cannot count mismatches in strings of differing lengths: $s1 $s2")
+    var count = 0
+    var i     = 0
+    while (i < s1.length) { if (count < stopAt && (s1.charAt(i) ^ s2.charAt(i)) != 0) count += 1; i += 1 }
+    count
+  }
+
   /**
     * Returns the number of homopolymers of a given minimum length within the sequence.
     *

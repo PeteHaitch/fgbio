@@ -151,12 +151,12 @@ class CorrectUmis
   override def execute(): Unit = {
     // Construct the full set of UMI sequences to match again
     val (umiSequences, umiLength) = {
-      val set = mutable.HashSet[String](umis:_*)
-      umiFiles.foreach(Io.readLines(_).map(_.trim).filter(_.nonEmpty).foreach(set.add))
-      validate(set.nonEmpty, s"At least one UMI sequence must be provided; none found in files ${umiFiles.mkString(", ")}")
+      val set = mutable.HashSet[String](umis.map(_.toUpperCase): _*)
+      umiFiles.foreach(Io.readLines(_).map(_.trim.toUpperCase).filter(_.nonEmpty).foreach(set.add))
+      require(set.nonEmpty, s"At least one UMI sequence must be provided; none found in files ${umiFiles.mkString(", ")}")
 
       val lengths = set.map(_.length)
-      validate(lengths.size == 1, s"UMIs of multiple lengths found. Lengths: ${lengths.mkString(", ")}")
+      require(lengths.size == 1, s"UMIs of multiple lengths found. Lengths: ${lengths.mkString(", ")}")
       (set.toArray, lengths.head)
     }
 
@@ -185,7 +185,7 @@ class CorrectUmis
           missingUmisRecords += 1
           rejectOut.foreach(w => w += rec)
         case Some(umi: String) =>
-          val sequences = umi.split('-')
+          val sequences = umi.split('-').map(_.toUpperCase)
           if (sequences.exists(_.length != umiLength)) {
             if (wrongLengthRecords == 0) {
               logger.warning(s"Read (${rec.name}) detected with unexpected length UMI(s): ${sequences.mkString(" ")}.")
@@ -196,7 +196,7 @@ class CorrectUmis
           }
           else {
             // Find matches for all the UMIs
-            val matches = sequences.map(findBestMatch(_, umiSequences))
+            val matches = sequences.map(bases => findBestMatch(bases, umiSequences))
 
             // Update the metrics
             matches.foreach { m =>
@@ -278,9 +278,12 @@ class CorrectUmis
     cachedResult match {
       case Some(result) => result
       case None         =>
-        val mismatches = umis.map(umi => Sequences.countMismatches(bases, umi))
+        // NB: Stop counting 3 after the maximum mismatches or minimum distance (whichever is greater) so that
+        //     the property on the metric [[UmiCorrectionMetrics#other_matches]] can be accurately calculated.
+        val stopAt     = Math.max(this.maxMismatches, this.minDistance) + 3
+        val mismatches = umis.map(umi => Sequences.countMismatchesFast(bases, umi, stopAt = stopAt))
         val min        = mismatches.min
-        val matched    = (min <= maxMismatches) && (mismatches.count(m => m < min + this.minDistance) == 1)
+        val matched    = (min <= this.maxMismatches) && (mismatches.count(m => m < min + this.minDistance) == 1)
         val umiMatch   = UmiMatch(matched, umis(mismatches.indexOf(min)), min)
         if (cacheSize > 0) cache.put(bases, umiMatch)
         umiMatch

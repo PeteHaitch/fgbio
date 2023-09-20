@@ -42,11 +42,35 @@ class SequencesTest extends UnitSpec {
     an[IllegalArgumentException] should be thrownBy Sequences.countMismatches("ACGT", "ACGTGG")
   }
 
-  it should "correct count mismatches" in {
+  it should "correctly count mismatches in a case-insensitive manner" in {
     Sequences.countMismatches("ACGACTATATGCAT", "acgactatatgcat") shouldBe 0
     Sequences.countMismatches("ACGACTATATGCAT", "acgactaNatgcat") shouldBe 1
     Sequences.countMismatches("ACGACTATATGCAT", "acgactataGTcat") shouldBe 2
     Sequences.countMismatches("ACGACTATATGCAT", "NNNNNNNNNNNNNN") shouldBe 14
+  }
+
+  "Sequences.countMismatchesFast" should "return 0 when comparing a string with itself" in {
+    val seq = "ACGTAGCTGACTGCA"
+    Sequences.countMismatchesFast(seq, seq) shouldBe 0
+  }
+
+  it should "throw an exception when comparing sequences of different lengths" in {
+    an[IllegalArgumentException] should be thrownBy Sequences.countMismatchesFast("ACGT", "ACGTGG")
+  }
+
+  it should "correctly count mismatches in a case-sensitive manner" in {
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "acgactatatgcat") shouldBe 14
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "ACGACTATATGCAT") shouldBe 0
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "ACGACTANATGCAT") shouldBe 1
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "ACGACTATAGTCAT") shouldBe 2
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "NNNNNNNNNNNNNN") shouldBe 14
+  }
+
+  it should "correctly count mismatches in a case-sensitive manner while stopping at a certain number of mismatches" in {
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "acgactatatgcat", stopAt = 15) shouldBe 14
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "acgactatatgcat", stopAt = 14) shouldBe 14
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "acgactatatgcat", stopAt = 13) shouldBe 13
+    Sequences.countMismatchesFast("ACGACTATATGCAT", "acgactatatgcat", stopAt = 0) shouldBe 0
   }
 
   "Sequences.longestHomopolymer" should "fail when passed a null String" in {

@@ -104,7 +104,7 @@ class CorrectUmisTest extends UnitSpec {
   }
 
   it should "throw an exception if all the fixed umis are not the same length " in {
-    an[ValidationException] shouldBe thrownBy {
+    an[IllegalArgumentException] shouldBe thrownBy {
       new CorrectUmis(input = NoBam, output = NoBam, maxMismatches = 2, minDistance = 2, umis = Seq("AAAAAA", "CCC")).execute()
     }
   }
